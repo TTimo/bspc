@@ -281,6 +281,36 @@ void AAS_JumpReachRunStart(aas_reachability_t *reach, vec3_t runstart)
 		VectorCopy(start, runstart);
 	} //end if
 } //end of the function AAS_JumpReachRunStart
+
+// cyr{
+void AAS_JumperReachRunStart(aas_reachability_t *reach, vec3_t runstart)
+{
+	vec3_t hordir, start, cmdmove;
+	aas_clientmove_t move;
+	vec3_t mins, maxs;  // cyr
+
+	//
+	hordir[0] = reach->start[0] - reach->end[0];
+	hordir[1] = reach->start[1] - reach->end[1];
+	hordir[2] = 0;
+	VectorNormalize(hordir);
+	//start point
+	VectorCopy(reach->start, start);
+	start[2] += 1;
+	//get command movement
+	VectorScale(hordir, 400, cmdmove);
+	//
+    AAS_ClientMovementPrediction(&move, -1, start, PRESENCE_NORMAL, qtrue,
+                                vec3_origin, cmdmove, 1, 2, 0.1f,
+                                SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA|
+                                SE_HITGROUNDDAMAGE|SE_GAP, 0, mins, maxs, qfalse, 1);   // cyr, jumper
+	VectorCopy(move.endpos, runstart);
+	//don't enter slime or lava and don't fall from too high
+	if (move.stopevent & (SE_ENTERSLIME|SE_ENTERLAVA|SE_HITGROUNDDAMAGE))
+	{
+		VectorCopy(start, runstart);
+	} //end if
+} // cyr}
 //===========================================================================
 // returns the Z velocity when rocket jumping at the origin
 //
@@ -498,7 +528,7 @@ int AAS_ClientMovementPrediction(struct aas_clientmove_s *move,
 								int cmdframes,
 								int maxframes, float frametime,
 								int stopevent, int stopareanum,
-								vec3_t mins, vec3_t maxs, int visualize)
+								vec3_t mins, vec3_t maxs, int visualize, int jumper)
 {
 	float phys_friction, phys_stopspeed, phys_gravity, phys_waterfriction;
 	float phys_watergravity;
@@ -577,7 +607,11 @@ int AAS_ClientMovementPrediction(struct aas_clientmove_s *move,
 				if (!swimming && cmdmove[2] > 1)
 				{
 					//jump velocity minus the gravity for one frame + 5 for safety
-					frame_test_vel[2] = phys_jumpvel - (gravity * 0.1 * frametime) + 5;
+                    if(jumper)  // jumper powerup jump    cyr
+                        frame_test_vel[2] = phys_jumpvel * 2.5 - (gravity * 0.1 * frametime) + 5;
+                    else        // ordinary jump
+                        frame_test_vel[2] = phys_jumpvel  - (gravity * 0.1 * frametime) + 5;
+					
 					jump_frame = n;
 					//jumping so air accelerate
 					accelerate = phys_airaccelerate;
@@ -976,7 +1010,7 @@ int AAS_PredictClientMovement(struct aas_clientmove_s *move,
 	return AAS_ClientMovementPrediction(move, entnum, origin, presencetype, onground,
 										velocity, cmdmove, cmdframes, maxframes,
 										frametime, stopevent, stopareanum,
-										mins, maxs, visualize);
+										mins, maxs, visualize, 0);	// cyr
 } //end of the function AAS_PredictClientMovement
 //===========================================================================
 //
@@ -995,7 +1029,7 @@ int AAS_ClientMovementHitBBox(struct aas_clientmove_s *move,
 	return AAS_ClientMovementPrediction(move, entnum, origin, presencetype, onground,
 										velocity, cmdmove, cmdframes, maxframes,
 										frametime, SE_HITBOUNDINGBOX, 0,
-										mins, maxs, visualize);
+										mins, maxs, visualize, 0);	// cyr
 } //end of the function AAS_ClientMovementHitBBox
 //===========================================================================
 //

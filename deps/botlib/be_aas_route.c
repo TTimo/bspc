@@ -159,6 +159,7 @@ void AAS_InitTravelFlagFromType(void)
 	aasworld.travelflagfortype[TRAVEL_STRAFEJUMP] = TFL_STRAFEJUMP;
 	aasworld.travelflagfortype[TRAVEL_JUMPPAD] = TFL_JUMPPAD;
 	aasworld.travelflagfortype[TRAVEL_FUNCBOB] = TFL_FUNCBOB;
+	aasworld.travelflagfortype[TRAVEL_JUMPER] = TFL_JUMPER; // cyr
 } //end of the function AAS_InitTravelFlagFromType
 //===========================================================================
 //

@@ -97,6 +97,13 @@ typedef struct aas_lreachability_s
 	//
 	struct aas_lreachability_s *next;
 } aas_lreachability_t;
+
+// cyr
+typedef struct custReach_s{
+	char content[1024];
+	aas_lreachability_t* reach;
+}custReach_t;
+
 //temporary reachabilities
 aas_lreachability_t *reachabilityheap;	//heap with reachabilities
 aas_lreachability_t *nextreachability;	//next free reachability from the heap
@@ -2272,7 +2279,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
 		VectorNormalize(dir);
 		CrossProduct(dir, up, sidewards);
 		//
-		stopevent = SE_HITGROUND|SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA|SE_HITGROUNDDAMAGE;
+		stopevent = SE_HITGROUND|SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA;
 		if (!AAS_AreaClusterPortal(area1num) && !AAS_AreaClusterPortal(area2num))
 			stopevent |= SE_TOUCHCLUSTERPORTAL;
 		//
@@ -2745,6 +2752,37 @@ int AAS_TravelFlagsForTeam(int ent)
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
+
+void CreateReachesForSprayTele(vec3_t origin, vec3_t mins, vec3_t maxs){
+	aas_link_t *areas, *link;
+	int i, j;
+
+	VectorAdd(origin, mins, mins);
+	VectorAdd(origin, maxs, maxs);
+	
+	//link an invalid (-1) entity
+	areas = AAS_LinkEntityClientBBox(mins, maxs, -1, PRESENCE_CROUCH);
+	if (!areas) botimport.Print(PRT_MESSAGE, "spraytele not in any area\n");
+	//
+	for (link = areas; link; link = link->next_area){
+		i = link->areanum;
+		for( j=1; j< aasworld.numareas; j++){
+			//if there already is a reachability link from area i to j
+			if (AAS_ReachabilityExists(i, j)) continue;
+
+			//check for a swim reachability
+			if (AAS_Reachability_Swim(i, j)) continue;
+			//check for a simple walk on equal floor height reachability
+			if (AAS_Reachability_EqualFloorHeight(i, j)) continue;
+			//check for step, barrier, waterjump and walk off ledge reachabilities
+			if (AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(i, j)) continue;
+			//check for ladder reachabilities
+			if (AAS_Reachability_Ladder(i, j)) continue;
+			//check for a jump reachability
+			if (AAS_Reachability_Jump(i, j)) continue;
+		}
+	}
+}
 void AAS_Reachability_Teleport(void)
 {
 	int area1num, area2num;
@@ -2758,6 +2796,7 @@ void AAS_Reachability_Teleport(void)
 	aas_clientmove_t move;
 	aas_trace_t trace;
 	aas_link_t *areas, *link;
+	int spawnflags;	// cyr
 
 	for (ent = AAS_NextBSPEntity(0); ent; ent = AAS_NextBSPEntity(ent))
 	{
@@ -2814,6 +2853,14 @@ void AAS_Reachability_Teleport(void)
 									origin[0], origin[1], origin[2]);
 				continue;
 			} //end if
+// cyr{
+            // ignore spraytele for routing (identify by spawnflag 2)
+            AAS_IntForBSPEpairKey(ent, "spawnflags", &spawnflags);
+            if (spawnflags & 2){
+				CreateReachesForSprayTele( origin, mins, maxs );
+				continue;
+			}
+// cyr}
 		} //end if
 		else
 		{
@@ -2883,7 +2930,7 @@ void AAS_Reachability_Teleport(void)
 				AAS_PredictClientMovement(&move, -1, destorigin, PRESENCE_NORMAL, qfalse,
 										velocity, cmdmove, 0, 30, 0.1f,
 										SE_HITGROUND|SE_ENTERWATER|SE_ENTERSLIME|
-										SE_ENTERLAVA|SE_HITGROUNDDAMAGE|SE_TOUCHJUMPPAD|SE_TOUCHTELEPORTER, 0, qfalse); //qtrue);
+										SE_ENTERLAVA|SE_TOUCHJUMPPAD|SE_TOUCHTELEPORTER, 0, qfalse); //qtrue);
 				area2num = AAS_PointAreaNum(move.endpos);
 				if (move.stopevent & (SE_ENTERSLIME|SE_ENTERLAVA))
 				{
@@ -3626,7 +3673,7 @@ void AAS_Reachability_JumpPad(void)
 				AAS_PredictClientMovement(&move, -1, areastart, PRESENCE_NORMAL, qfalse,
 										velocity, cmdmove, 0, 30, 0.1f,
 										SE_HITGROUND|SE_ENTERWATER|SE_ENTERSLIME|
-										SE_ENTERLAVA|SE_HITGROUNDDAMAGE|SE_TOUCHJUMPPAD|SE_TOUCHTELEPORTER, 0, bot_visualizejumppads);
+										SE_ENTERLAVA|SE_TOUCHJUMPPAD|SE_TOUCHTELEPORTER, 0, bot_visualizejumppads);
 				area2num = move.endarea;
 				for (link = areas; link; link = link->next_area)
 				{
@@ -4072,13 +4119,12 @@ int AAS_Reachability_WeaponJump(int area1num, int area2num)
 					//
 					AAS_PredictClientMovement(&move, -1, areastart, PRESENCE_NORMAL, qtrue,
 												velocity, cmdmove, 30, 30, 0.1f,
-												SE_ENTERWATER|SE_ENTERSLIME|
-												SE_ENTERLAVA|SE_HITGROUNDDAMAGE|
+												SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA|
 												SE_TOUCHJUMPPAD|SE_HITGROUND|SE_HITGROUNDAREA, area2num, visualize);
 					//if prediction time wasn't enough to fully predict the movement
 					//don't enter slime or lava and don't fall from too high
 					if (move.frames < 30 && 
-							!(move.stopevent & (SE_ENTERSLIME|SE_ENTERLAVA|SE_HITGROUNDDAMAGE))
+							!(move.stopevent & (SE_ENTERSLIME|SE_ENTERLAVA))
 								&& (move.stopevent & (SE_HITGROUNDAREA|SE_TOUCHJUMPPAD)))
 					{
 						//create a rocket or bfg jump reachability from area1 to area2
@@ -4300,6 +4346,336 @@ void AAS_Reachability_WalkOffLedge(int areanum)
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
+
+// cyr{
+
+void CheckForJumpPadReaches(aas_lreachability_t* myreach){
+	int ent;
+	aas_link_t *areas, *link;
+	aas_lreachability_t *lreach;
+	char classname[MAX_EPAIRKEY];
+	vec3_t areastart, absmins, absmaxs, velocity, offset;
+	float dist, nearest = 99999;
+	int bestent = 0;
+
+	for (ent = AAS_NextBSPEntity(0); ent; ent = AAS_NextBSPEntity(ent)){
+		if (!AAS_ValueForBSPEpairKey(ent, "classname", classname, MAX_EPAIRKEY)) continue;
+		if (strcmp(classname, "trigger_push")) continue;
+		if (!AAS_GetJumpPadInfo(ent, areastart, absmins, absmaxs, velocity)) continue;
+		
+		VectorSubtract(areastart, myreach->start, offset);
+		dist = VectorLength(offset);
+		if(dist < nearest){
+			nearest = dist;
+			bestent = ent;
+		}
+	}
+
+	if(!bestent){
+		botimport.Print(PRT_MESSAGE, "no jumppad for reachability found\n");
+		return;
+	}
+	else
+		botimport.Print(PRT_MESSAGE, "found jumppad %.1f units away \n", nearest );
+
+
+	if (!AAS_GetJumpPadInfo(bestent, areastart, absmins, absmaxs, velocity)) return;
+	//get the areas the jump pad brush is in
+	areas = AAS_LinkEntityClientBBox(absmins, absmaxs, -1, PRESENCE_CROUCH);
+	
+	// use jumppad origin as start
+	VectorCopy(areastart, myreach->start);
+
+	for (link = areas; link; link = link->next_area){
+		botimport.Print(PRT_MESSAGE, "testing jumppad area %d\n", link->areanum);
+		if (!AAS_AreaJumpPad(link->areanum)){ 
+			botimport.Print(PRT_MESSAGE, "jumppad flag not set in area \n");
+			continue;
+		}
+		if (AAS_ReachabilityExists(link->areanum, myreach->areanum)){
+			botimport.Print(PRT_MESSAGE, "reach already exists \n");
+			continue;
+		}
+		//create a jumppad reachability from area1 to area2
+		lreach = AAS_AllocReachability();
+		if (!lreach){
+			AAS_UnlinkFromAreas(areas);
+			botimport.Print(PRT_MESSAGE, "failed to alloc \n");
+			return;
+		} //end if
+
+		lreach->areanum = myreach->areanum; // move.endarea;
+		//NOTE: the facenum is the Z velocity
+		lreach->facenum = myreach->facenum;	// velocity[2];
+		//NOTE: the edgenum is the horizontal velocity
+		lreach->edgenum = myreach->edgenum;	//sqrt(cmdmove[0] * cmdmove[0] + cmdmove[1] * cmdmove[1]);
+		VectorCopy(areastart, lreach->start);
+		VectorCopy(myreach->end, lreach->end);
+		lreach->traveltype = TRAVEL_JUMPPAD;
+		lreach->traveltime = myreach->traveltime;
+		lreach->next = areareachability[link->areanum];
+		areareachability[link->areanum] = lreach;
+		//
+		reach_jumppad++;
+		botimport.Print(PRT_MESSAGE, "adding jumppad reach from area %d\n", link->areanum);
+	} //end for
+
+}
+
+void myQ_strncpyz( char *dest, const char *src, int destsize ) {
+
+	if ( !dest ) botimport.Print(PRT_MESSAGE, "Q_strncpyz: NULL dest" );
+	if ( !src )  botimport.Print(PRT_MESSAGE, "Q_strncpyz: NULL src" );
+	if ( destsize < 1 ) botimport.Print(PRT_MESSAGE,"Q_strncpyz: destsize < 1" ); 	
+	
+	strncpy( dest, src, destsize-1 );
+	dest[destsize-1] = 0;
+}
+
+void PrintLreach(aas_lreachability_t* reach){
+	botimport.Print(PRT_MESSAGE, "\n\n reach \n********\n" );
+	botimport.Print(PRT_MESSAGE, "area: %d \n", reach->areanum);
+	botimport.Print(PRT_MESSAGE, "edgenum: %d \n", reach->edgenum);
+	botimport.Print(PRT_MESSAGE, "end: %.1f %.1f %.1f \n", reach->end[0], reach->end[1], reach->end[2]);
+	botimport.Print(PRT_MESSAGE, "facenum: %d \n", reach->facenum);
+	botimport.Print(PRT_MESSAGE, "start: %.1f %.1f %.1f \n", reach->start[0], reach->start[1], reach->start[2]);
+	botimport.Print(PRT_MESSAGE, "traveltime: %d \n", reach->traveltime);
+	botimport.Print(PRT_MESSAGE, "traveltype: %d \n", reach->traveltype);
+}
+
+static void XMLCALL startHandler(void *data, const char *el, const char **attr){
+	custReach_t* userdata = (custReach_t*) data;
+	
+	//botimport.Print(PRT_MESSAGE, "start el: %s \n", el);
+	if( !strcmp(el, "reachability") ){
+		userdata->reach = AAS_AllocReachability();
+	}
+	else {
+		userdata->content[0] = '\0';
+	}
+	
+}
+
+static void XMLCALL endHandler(void *data, const char *el){
+	custReach_t* userdata = (custReach_t*) data;
+	//botimport.Print(PRT_MESSAGE, "end el: %s .. data: %s \n", el, userdata->content);
+	
+	// closing reach, put to head of startarea chain
+	if( !strcmp(el, "reachability") ){
+		int startarea;
+		
+		// ignore the reachfile's areanum, calculate it here
+		userdata->reach->areanum = AAS_PointAreaNum(userdata->reach->end);
+
+		PrintLreach(userdata->reach);
+
+		// if this is a jumppad reach, add reaches for all involved areas
+		if(userdata->reach->traveltype == TRAVEL_JUMPPAD) 
+			CheckForJumpPadReaches(userdata->reach);
+
+		startarea = AAS_PointAreaNum(userdata->reach->start);
+		userdata->reach->next = areareachability[startarea];
+		areareachability[startarea] = userdata->reach;
+	}
+
+	// reach member values, make sure reach exists
+	if(!userdata->reach){
+		botimport.Print(PRT_MESSAGE, "end handler for element %s called without reachability\n",el);
+		return;
+	}
+	
+	if( !strcmp(el, "areanum") ){
+		userdata->reach->areanum = atoi(userdata->content);
+	}
+	else if( !strcmp(el, "edgenum") ){
+		userdata->reach->edgenum = atoi(userdata->content);
+	}
+	else if( !strcmp(el, "endX") ){
+		userdata->reach->end[0] = atof(userdata->content);
+	}
+	else if( !strcmp(el, "endY") ){
+		userdata->reach->end[1] = atof(userdata->content);
+	}
+	else if( !strcmp(el, "endZ") ){
+		userdata->reach->end[2] = atof(userdata->content);
+	}	
+	else if( !strcmp(el, "facenum") ){
+		userdata->reach->facenum = atoi(userdata->content);
+	}
+	else if( !strcmp(el, "startX") ){
+		userdata->reach->start[0] = atof(userdata->content);
+	}
+	else if( !strcmp(el, "startY") ){
+		userdata->reach->start[1] = atof(userdata->content);
+	}
+	else if( !strcmp(el, "startZ") ){
+		userdata->reach->start[2] = atof(userdata->content);
+	}
+	else if( !strcmp(el, "traveltime") ){
+		userdata->reach->traveltime = atoi(userdata->content);
+	}
+	else if( !strcmp(el, "traveltype") ){
+		userdata->reach->traveltype = atoi(userdata->content);
+	}
+}
+
+static void XMLCALL dataHandler(void *data, const XML_Char *s, int len){
+	custReach_t* userdata = (custReach_t*) data;
+	size_t offset = strlen( userdata->content);
+
+
+	myQ_strncpyz(userdata->content + offset, (char*) s, len+1);
+
+	//offset = sizeof( userdata->content);
+	//strncpy( userdata->content + offset, (char*)s, len);
+	//userdata->content[offset+len] = 0;
+}
+
+#define BUFFSIZE        8192
+char buffer[BUFFSIZE];
+
+void expat_parseAway(char* xmlReachFile){
+	XML_Parser p;
+	FILE *fp;
+	custReach_t userdata;
+
+	//create parser
+	p = XML_ParserCreate(NULL);
+	if(!p){ botimport.Print(PRT_MESSAGE, "parser: geht net \n"); return; }
+
+	XML_SetElementHandler(p, startHandler, endHandler);
+	XML_SetCharacterDataHandler(p, dataHandler);
+	XML_SetUserData(p, &userdata);
+
+	// open file
+	fp = fopen(myreach_filename, "rb");
+	if(!fp){ botimport.Print(PRT_MESSAGE, "can't open %s \n", xmlReachFile);return; }
+
+
+	for (;;) {
+		int done;
+		int len;
+		
+		len = fread(buffer, 1, BUFFSIZE, fp); //fread(Buff, 1, BUFFSIZE, stdin);
+		if(!len) break;
+
+		if(len < BUFFSIZE) done = qtrue;
+		
+		if (XML_Parse(p, buffer, len, done) == XML_STATUS_ERROR) {
+			botimport.Print(PRT_MESSAGE, "Parse error at line %d:\n%s\n",
+				XML_GetCurrentLineNumber(p),
+				XML_ErrorString(XML_GetErrorCode(p)));
+			return;
+		}
+		botimport.Print(PRT_MESSAGE, "%d zeichen geparsed \n", len);
+		
+		if (done) break;
+	}
+
+	// free parser
+	XML_ParserFree(p);
+}
+
+#define RSTORE_SIZE	300
+
+int AAS_ReadCustomReaches(void){
+	FILE *fp; //fileHandle_t fp;
+	//char filename[MAX_PATH]="";
+	int i, s_area;
+	aas_lreachability_t *lreach;
+	
+	aas_reachability_t my_rstore[RSTORE_SIZE];	// cyr
+	int my_rstore_iter;	// cyr
+
+	botimport.Print(PRT_MESSAGE, "\n\n\n\n parse %s\n", myreach_filename);
+	expat_parseAway(myreach_filename);
+	botimport.Print(PRT_MESSAGE, "parser: done \n\n\n\n");
+	return 1;
+
+
+	//strcpy(filename, aasworld.mapname);
+	//sprintf(filename,"%s.rch", aasworld.mapname);
+	//strcat(filename, "myreach.rch");
+
+	/*
+	botimport.FS_FOpenFile( "myreach.rch", &fp, FS_READ );
+	if(!fp){
+		Log_Print("cannot open... \n");
+		botimport.Print(PRT_ERROR, "can't open reachfile %s\n", filename);
+		return 0;
+	}*/
+
+	
+	fp = fopen(myreach_filename, "rb");
+	if (!fp){
+		//AAS_Error("can't open myreach\n"); 
+		botimport.Print(PRT_MESSAGE, "can't open reachfile %s \n", myreach_filename);
+		return qfalse;
+	} //end if
+	botimport.Print(PRT_MESSAGE, "opened reachfile %s \n", myreach_filename);
+
+	// read header
+	if( fread(&my_rstore_iter, sizeof(int), 1, fp) != 1 ){
+		AAS_Error(" cant read reachfile header\n"); return qfalse;
+	}
+	// boundary check
+	if(my_rstore_iter > RSTORE_SIZE){
+		AAS_Error(" myreach contains too much reaches: %d \n", my_rstore_iter); return qfalse;
+	}
+	// Log_Print("read header: contains %d reaches \n", my_rstore_iter);
+
+	// read reaches array
+	for(i=0; i<my_rstore_iter; i++){
+		if( fread(&my_rstore[i], sizeof(aas_reachability_t), 1, fp) != 1){
+			AAS_Error(" error reading # %d of %d reaches\n", i, my_rstore_iter); return qfalse;
+		}
+		botimport.Print(PRT_MESSAGE, "read reach\n");
+	}
+	// close
+	fclose(fp);
+	botimport.Print(PRT_MESSAGE, "closed reachfile %s \n", myreach_filename);
+
+	//Log_Print("open success... \n");
+/*
+	// read array size
+	botimport.FS_Read(&my_rstore_iter, sizeof(int), fp );
+	if(my_rstore_iter >= 100)
+		botimport.Print(PRT_MESSAGE, "invalid iter: %d\n", my_rstore_iter);
+	// read array
+	for(i=0; i<my_rstore_iter; i++){
+		botimport.FS_Read(&my_rstore[i], sizeof(aas_reachability_t), fp );
+		//botimport.Print(PRT_MESSAGE, "number %d, start %f \n", i, my_rstore[i].start[0]);
+	}
+	botimport.Print(PRT_MESSAGE, "finished reading %d reaches (%d) \n", my_rstore_iter, i);
+
+	// close file
+	botimport.FS_FCloseFile(fp);
+*/
+	// copy to lreach and put to head of startareas chain
+	for(i=0; i<my_rstore_iter; i++){
+		// calc start area
+		s_area = AAS_PointAreaNum(my_rstore[i].start);
+		// create lreach and add that to the chain ( areareachability[] )
+		lreach = AAS_AllocReachability();
+		if (!lreach) return qfalse;
+		lreach->areanum = my_rstore[i].areanum;
+		lreach->edgenum = my_rstore[i].edgenum;
+		lreach->facenum = my_rstore[i].facenum;
+		lreach->traveltime = my_rstore[i].traveltime;
+		lreach->traveltype = my_rstore[i].traveltype;
+		VectorCopy( my_rstore[i].start, lreach->start );
+		VectorCopy( my_rstore[i].end, lreach->end );
+		
+		// put to head of startarea chain
+		lreach->next = areareachability[s_area];
+		areareachability[s_area] = lreach;
+	}
+	botimport.Print(PRT_MESSAGE, "stored %d reaches \n", my_rstore_iter);
+//	Log_Print("stored %d reaches \n", my_rstore_iter);
+	return my_rstore_iter;
+}
+// cyr}
+
 void AAS_StoreReachability(void)
 {
 	int i;
@@ -4308,7 +4684,7 @@ void AAS_StoreReachability(void)
 	aas_reachability_t *reach;
 
 	if (aasworld.reachability) FreeMemory(aasworld.reachability);
-	aasworld.reachability = (aas_reachability_t *) GetClearedMemory((numlreachabilities + 10) * sizeof(aas_reachability_t));
+	aasworld.reachability = (aas_reachability_t *) GetClearedMemory((numlreachabilities +  10) * sizeof(aas_reachability_t));	// cyr
 	aasworld.reachabilitysize = 1;
 	for (i = 0; i < aasworld.numareas; i++)
 	{
@@ -4416,17 +4792,7 @@ int AAS_ContinueInitReachability(float time)
 		{
 			continue;
 		} //end if
-		//loop over the areas
-		for (j = 1; j < aasworld.numareas; j++)
-		{
-			if (i == j) continue;
-			//
-			if (AAS_ReachabilityExists(i, j)) continue;
-			//check for a grapple hook reachability
-			if (calcgrapplereach) AAS_Reachability_Grapple(i, j);
-			//check for a weapon jump reachability
-			AAS_Reachability_WeaponJump(i, j);
-		} //end for
+
 		//if the calculation took more time than the max reachability delay
 		if (Sys_MilliSeconds() - start_time > (int) reachability_delay) break;
 		//
@@ -4480,6 +4846,8 @@ int AAS_ContinueInitReachability(float time)
 #endif
 		//*/
 		//store all the reachabilities
+		
+		AAS_ReadCustomReaches();	// cyr
 		AAS_StoreReachability();
 		//free the reachability link heap
 		AAS_ShutDownReachabilityHeap();

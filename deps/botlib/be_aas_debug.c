@@ -607,12 +607,37 @@ void AAS_ShowReachability(aas_reachability_t *reach)
 	vec3_t dir, cmdmove, velocity;
 	float speed, zvel;
 	aas_clientmove_t move;
+	vec3_t mins, maxs;  // cyr
 
 	AAS_ShowAreaPolygons(reach->areanum, 5, qtrue);
 	//AAS_ShowArea(reach->areanum, qtrue);
 	AAS_DrawArrow(reach->start, reach->end, LINECOLOR_BLUE, LINECOLOR_YELLOW);
 	//
-	if ((reach->traveltype & TRAVELTYPE_MASK) == TRAVEL_JUMP ||
+	if ((reach->traveltype & TRAVELTYPE_MASK) == TRAVEL_JUMPER )
+    {
+        AAS_HorizontalVelocityForJump(aassettings.phys_jumpvel *2.5, reach->start, reach->end, &speed);
+        //
+        VectorSubtract(reach->end, reach->start, dir);
+        dir[2] = 0;
+        VectorNormalize(dir);
+        //set the velocity
+        VectorScale(dir, speed, velocity);
+        //set the command movement
+        VectorClear(cmdmove);
+        cmdmove[2] = aassettings.phys_jumpvel *2.5 ;
+        //
+        AAS_ClientMovementPrediction(&move, -1, reach->start, PRESENCE_NORMAL, qtrue,
+                                    velocity, cmdmove, 3, 30, 0.1f,
+                                    SE_HITGROUND|SE_ENTERWATER|SE_ENTERSLIME|
+                                    SE_ENTERLAVA|SE_HITGROUNDDAMAGE, 0, mins, maxs, qtrue, 1);
+        //
+        if ((reach->traveltype & TRAVELTYPE_MASK) == TRAVEL_JUMP)
+        {
+            AAS_JumpReachRunStart(reach, dir);
+            AAS_DrawCross(dir, 4, LINECOLOR_BLUE);
+        } //end if
+    } //end if
+	else if ((reach->traveltype & TRAVELTYPE_MASK) == TRAVEL_JUMP ||
 		(reach->traveltype & TRAVELTYPE_MASK) == TRAVEL_WALKOFFLEDGE)
 	{
 		AAS_HorizontalVelocityForJump(aassettings.phys_jumpvel, reach->start, reach->end, &speed);

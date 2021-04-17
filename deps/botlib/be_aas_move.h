@@ -49,6 +49,16 @@ int AAS_ClientMovementHitBBox(struct aas_clientmove_s *move,
 								int cmdframes,
 								int maxframes, float frametime,
 								vec3_t mins, vec3_t maxs, int visualize);
+// cyr{
+int AAS_ClientMovementPrediction(struct aas_clientmove_s *move,
+                                int entnum, vec3_t origin,
+                                int presencetype, int onground,
+                                vec3_t velocity, vec3_t cmdmove,
+                                int cmdframes,
+                                int maxframes, float frametime,
+                                int stopevent, int stopareanum,
+                                vec3_t mins, vec3_t maxs, int visualize, int jumper);
+// cyr}
 //returns true if on the ground at the given origin
 int AAS_OnGround(vec3_t origin, int presencetype, int passent);
 //returns true if swimming at the given origin

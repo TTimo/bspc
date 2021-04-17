@@ -249,6 +249,12 @@ qboolean AAS_LoadAASFile(char *filename, int fpoffset, int fplength)
 	aas_header_t header;
 	int offset, length;
 
+	/*
+	// cyr
+	Log_Print("inside AAS_LoadAASFile() \n");
+	if( !AAS_OpenMyReach() )
+		return false;
+*/
 	//dump current loaded aas file
 	AAS_DumpAASData();
 	//open the file
@@ -470,6 +476,8 @@ void AAS_ShowTotals(void)
 	AAS_ShowNumReachabilities(TRAVEL_STRAFEJUMP, "strafe jump");
 	AAS_ShowNumReachabilities(TRAVEL_JUMPPAD, "jump pad");
 	AAS_ShowNumReachabilities(TRAVEL_FUNCBOB, "func bob");
+	AAS_ShowNumReachabilities(TRAVEL_JUMPER, "jumper");		// cyr
+
 } //end of the function AAS_ShowTotals
 //===========================================================================
 // aas data is useless after writing to file because it is byte swapped

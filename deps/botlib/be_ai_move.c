@@ -1951,6 +1951,73 @@ bot_moveresult_t BotTravel_Jump(bot_movestate_t *ms, aas_reachability_t *reach)
 	//
 	return result;
 } //end of the function BotTravel_Jump*/
+
+// cyr{
+bot_moveresult_t BotTravel_Jumper(bot_movestate_t *ms, aas_reachability_t *reach)
+{
+	vec3_t hordir, dir1, dir2, start, end, runstart;
+//	vec3_t runstart, dir1, dir2, hordir;
+	float dist1, dist2, speed;
+	bot_moveresult_t result;
+
+	BotClearMoveResult(&result);
+	//
+	AAS_JumperReachRunStart(reach, runstart);
+	//*
+	hordir[0] = runstart[0] - reach->start[0];
+	hordir[1] = runstart[1] - reach->start[1];
+	hordir[2] = 0;
+	VectorNormalize(hordir);
+	//
+	VectorCopy(reach->start, start);
+	start[2] += 1;
+	VectorMA(reach->start, 80, hordir, runstart);
+	//check for a gap
+	for (dist1 = 0; dist1 < 80; dist1 += 10)
+	{
+		VectorMA(start, dist1+10, hordir, end);
+		end[2] += 1;
+		if (AAS_PointAreaNum(end) != ms->reachareanum) break;
+	} //end for
+	if (dist1 < 80) VectorMA(reach->start, dist1, hordir, runstart);
+	//
+	VectorSubtract(ms->origin, reach->start, dir1);
+	dir1[2] = 0;
+	dist1 = VectorNormalize(dir1);
+	VectorSubtract(ms->origin, runstart, dir2);
+	dir2[2] = 0;
+	dist2 = VectorNormalize(dir2);
+	//if just before the reachability start
+	if (DotProduct(dir1, dir2) < -0.8 || dist2 < 5)
+	{
+//		botimport.Print(PRT_MESSAGE, "between jump start and run start point\n");
+		hordir[0] = reach->end[0] - ms->origin[0];
+		hordir[1] = reach->end[1] - ms->origin[1];
+		hordir[2] = 0;
+		VectorNormalize(hordir);
+		//elemantary action jump
+		if (dist1 < 24) EA_Jump(ms->client);
+		else if (dist1 < 32) EA_DelayedJump(ms->client);
+		EA_Move(ms->client, hordir, 600);
+		//
+		ms->jumpreach = ms->lastreachnum;
+	} //end if
+	else
+	{
+//		botimport.Print(PRT_MESSAGE, "going towards run start point\n");
+		hordir[0] = runstart[0] - ms->origin[0];
+		hordir[1] = runstart[1] - ms->origin[1];
+		hordir[2] = 0;
+		VectorNormalize(hordir);
+		//
+		if (dist2 > 80) dist2 = 80;
+		speed = 400 - (400 - 5 * dist2);
+		EA_Move(ms->client, hordir, speed);
+	} //end else
+	VectorCopy(hordir, result.movedir);
+	//
+	return result;
+} // cyr}
 //===========================================================================
 //
 // Parameter:				-
@@ -3370,6 +3437,7 @@ void BotMoveToGoal(bot_moveresult_t *result, int movestate, bot_goal_t *goal, in
 				case TRAVEL_BFGJUMP: *result = BotTravel_BFGJump(ms, &reach); break;
 				case TRAVEL_JUMPPAD: *result = BotTravel_JumpPad(ms, &reach); break;
 				case TRAVEL_FUNCBOB: *result = BotTravel_FuncBobbing(ms, &reach); break;
+				case TRAVEL_JUMPER: *result = BotTravel_Jumper (ms, &reach); break; // cyr
 				default:
 				{
 					botimport.Print(PRT_FATAL, "travel type %d not implemented yet\n", (reach.traveltype & TRAVELTYPE_MASK));
@@ -3479,6 +3547,7 @@ void BotMoveToGoal(bot_moveresult_t *result, int movestate, bot_goal_t *goal, in
 				case TRAVEL_BFGJUMP: *result = BotFinishTravel_WeaponJump(ms, &reach); break;
 				case TRAVEL_JUMPPAD: *result = BotFinishTravel_JumpPad(ms, &reach); break;
 				case TRAVEL_FUNCBOB: *result = BotFinishTravel_FuncBobbing(ms, &reach); break;
+				case TRAVEL_JUMPER: *result = BotFinishTravel_Jump(ms, &reach); break;    // cyr
 				default:
 				{
 					botimport.Print(PRT_FATAL, "(last) travel type %d not implemented yet\n", (reach.traveltype & TRAVELTYPE_MASK));
