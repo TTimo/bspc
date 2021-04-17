@@ -108,8 +108,11 @@ CFLAGS=\
 	-fno-common \
 	-I. -Ideps -Wall $(EXPAT_CFLAGS)
 
-ifndef MINGW
+ifneq (,$(findstring "$(PLATFORM)", "linux" "gnu_kfreebsd" "kfreebsd-gnu" "gnu"))
   CFLAGS += -DHAVE_GETRANDOM -DLINUX
+endif
+ifeq ($(PLATFORM),darwin)
+  CFLAGS += -DHAVE_ARC4RANDOM -DLINUX
 endif
 
 RELEASE_CFLAGS=-O3 -ffast-math
