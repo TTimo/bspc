@@ -104,12 +104,12 @@ endif
 CC=gcc
 CFLAGS=\
 	-Dstricmp=strcasecmp -DCom_Memcpy=memcpy -DCom_Memset=memset \
-	-DMAC_STATIC= -DQDECL= -DLINUX -DBSPC -D_FORTIFY_SOURCE=2 \
+	-DMAC_STATIC= -DQDECL= -DBSPC -D_FORTIFY_SOURCE=2 \
 	-fno-common \
 	-I. -Ideps -Wall $(EXPAT_CFLAGS)
 
 ifndef MINGW
-  CFLAGS += -DHAVE_GETRANDOM
+  CFLAGS += -DHAVE_GETRANDOM -DLINUX
 endif
 
 RELEASE_CFLAGS=-O3 -ffast-math
