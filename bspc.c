@@ -53,6 +53,7 @@ char			name[1024];
 vec_t			microvolume = 1.0;
 char			outbase[32];
 int				entity_num;
+char			myreach_filename[MAX_PATH]="";
 
 qboolean	noprune;			//don't prune nodes (bspc.c)
 qboolean	glview;				//create a gl view
@@ -525,6 +526,11 @@ int main (int argc, char **argv)
 				for (qf = qfiles; qf; qf = qf->next)
 				{
 					AASOuputFile(qf, outputpath, filename);
+
+					// create reachfile name
+					ExtractFilePath(filename, myreach_filename);
+					ExtractFileBase(filename, &myreach_filename[strlen(myreach_filename)] );
+					strcat(myreach_filename, ".rch");
 					//
 					Log_Print("bsp2aas: %s to %s\n", qf->origname, filename);
 					if (qf->type != QFILETYPE_BSP) Warning("%s is probably not a BSP file\n", qf->origname);
@@ -554,6 +560,12 @@ int main (int argc, char **argv)
 				for (qf = qfiles; qf; qf = qf->next)
 				{
 					AASOuputFile(qf, outputpath, filename);
+
+					// create reachfile name
+					ExtractFilePath(filename, myreach_filename);
+					ExtractFileBase(filename, &myreach_filename[strlen(myreach_filename)] );
+					strcat(myreach_filename, ".rch");
+
 					//
 					Log_Print("reach: %s to %s\n", qf->origname, filename);
 					if (qf->type != QFILETYPE_BSP) Warning("%s is probably not a BSP file\n", qf->origname);
@@ -600,6 +612,11 @@ int main (int argc, char **argv)
 				for (qf = qfiles; qf; qf = qf->next)
 				{
 					AASOuputFile(qf, outputpath, filename);
+
+					// create reachfile name
+					ExtractFilePath(filename, myreach_filename);
+					ExtractFileBase(filename, &myreach_filename[strlen(myreach_filename)] );
+					strcat(myreach_filename, ".rch");
 					//
 					Log_Print("cluster: %s to %s\n", qf->origname, filename);
 					if (qf->type != QFILETYPE_BSP) Warning("%s is probably not a BSP file\n", qf->origname);
@@ -650,6 +667,12 @@ int main (int argc, char **argv)
 				for (qf = qfiles; qf; qf = qf->next)
 				{
 					AASOuputFile(qf, outputpath, filename);
+
+					// create reachfile name
+					ExtractFilePath(filename, myreach_filename);
+					ExtractFileBase(filename, &myreach_filename[strlen(myreach_filename)] );
+					strcat(myreach_filename, ".rch");
+
 					//
 					Log_Print("optimizing: %s to %s\n", qf->origname, filename);
 					if (qf->type != QFILETYPE_AAS) Warning("%s is probably not a AAS file\n", qf->origname);
@@ -677,6 +700,12 @@ int main (int argc, char **argv)
 				for (qf = qfiles; qf; qf = qf->next)
 				{
 					AASOuputFile(qf, outputpath, filename);
+
+					// create reachfile name
+					ExtractFilePath(filename, myreach_filename);
+					ExtractFileBase(filename, &myreach_filename[strlen(myreach_filename)] );
+					strcat(myreach_filename, ".rch");
+
 					//
 					Log_Print("aas info for: %s\n", filename);
 					if (qf->type != QFILETYPE_AAS) Warning("%s is probably not a AAS file\n", qf->origname);
