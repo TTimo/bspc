@@ -43,10 +43,23 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "be_aas_funcs.h"
 #include "be_aas_def.h"
 
+// expat test
+#include "expat.h"
+#ifndef XMLCALL
+#if defined(_MSC_EXTENSIONS) && !defined(__BEOS__) && !defined(__CYGWIN__)
+#define XMLCALL __cdecl
+#elif defined(__GNUC__)
+#define XMLCALL __attribute__((cdecl))
+#else
+#define XMLCALL
+#endif
+#endif
+
 extern int Sys_MilliSeconds(void);
 
 
 extern botlib_import_t botimport;
+extern char myreach_filename[MAX_PATH];
 
 //#define REACH_DEBUG
 
