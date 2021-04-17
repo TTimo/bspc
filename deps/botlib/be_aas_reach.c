@@ -3784,13 +3784,12 @@ void AAS_Reachability_JumpPad(void)
 						//
 						AAS_PredictClientMovement(&move, -1, areastart, PRESENCE_NORMAL, qfalse,
 													velocity, cmdmove, 30, 30, 0.1f,
-													SE_ENTERWATER|SE_ENTERSLIME|
-													SE_ENTERLAVA|SE_HITGROUNDDAMAGE|
+													SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA|
 													SE_TOUCHJUMPPAD|SE_TOUCHTELEPORTER|SE_HITGROUNDAREA, area2num, visualize);
 						//if prediction time wasn't enough to fully predict the movement
 						//don't enter slime or lava and don't fall from too high
 						if (move.frames < 30 && 
-								!(move.stopevent & (SE_ENTERSLIME|SE_ENTERLAVA|SE_HITGROUNDDAMAGE))
+								!(move.stopevent & (SE_ENTERSLIME|SE_ENTERLAVA))
 								&& (move.stopevent & (SE_HITGROUNDAREA|SE_TOUCHJUMPPAD|SE_TOUCHTELEPORTER)))
 						{
 							//never go back to the same jumppad
