@@ -24,40 +24,11 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      - name: "Install Dependencies (Linux)"
-        if: ${{ runner.os == 'Linux' }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install libexpat1-dev
-
-      - name: "Install Dependencies (Windows)"
-        if: ${{ runner.os == 'Windows' }}
-        run: vcpkg install expat
-
-      - name: "Install Dependencies (MacOS)"
-        if: ${{ runner.os == 'macOS' }}
-        run: brew install expat
-
       - name: "Compile"
         run: make release
 
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v2
-        if: ${{ runner.os == 'Linux' }}
         with:
-          name: Linux
-          path: bspcwop
-
-      - name: "Upload artifacts"
-        uses: actions/upload-artifact@v2
-        if: ${{ runner.os == 'Windows' }}
-        with:
-          name: Windows
-          path: bspcwop.exe
-
-      - name: "Upload artifacts"
-        uses: actions/upload-artifact@v2
-        if: ${{ runner.os == 'macOS' }}
-        with:
-          name: MacOS
-          path: bspcwop
+          name: ${{ runner.os }}
+          path: bspcwop*

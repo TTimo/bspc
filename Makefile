@@ -90,8 +90,16 @@ else
 endif
 endif
 
+ifndef USE_INTERNAL_LIBS
+USE_INTERNAL_LIBS=1
+endif
+
+ifeq ($(USE_INTERNAL_LIBS),0)
 EXPAT_CFLAGS ?= $(shell $(PKG_CONFIG) --silence-errors --cflags expat || true)
 EXPAT_LIBS ?= $(shell $(PKG_CONFIG) --silence-errors --libs expat || echo -lexpat)
+else
+EXPAT_CFLAGS ?= -Ideps/expat-2.2.10
+endif
 
 CC=gcc
 CFLAGS=\
@@ -99,6 +107,10 @@ CFLAGS=\
 	-DMAC_STATIC= -DQDECL= -DLINUX -DBSPC -D_FORTIFY_SOURCE=2 \
 	-fno-common \
 	-I. -Ideps -Wall $(EXPAT_CFLAGS)
+
+ifndef MINGW
+  CFLAGS += -DHAVE_GETRANDOM
+endif
 
 RELEASE_CFLAGS=-O3 -ffast-math
 DEBUG_CFLAGS=-g -O0 -ffast-math
@@ -174,6 +186,15 @@ GAME_OBJS = \
 
         #tetrahedron.o
 
+ifeq ($(USE_INTERNAL_LIBS),1)
+	EXPAT_OBJS = \
+		deps/expat-2.2.10/xmlparse.o \
+		deps/expat-2.2.10/xmltok.o \
+		deps/expat-2.2.10/xmlrole.o
+else
+	EXPAT_OBJS =
+endif
+
 ifdef MINGW
   BINEXT=.exe
 endif
@@ -188,12 +209,12 @@ debug: $(EXEC)_g$(BINEXT)
 release: CFLAGS += $(RELEASE_CFLAGS)
 release: $(EXEC)$(BINEXT)
 
-$(EXEC)$(BINEXT): $(GAME_OBJS)
-	$(CC) -o $@ $(GAME_OBJS) $(LDFLAGS)
+$(EXEC)$(BINEXT): $(GAME_OBJS) $(EXPAT_OBJS)
+	$(CC) -o $@ $(GAME_OBJS) $(EXPAT_OBJS) $(LDFLAGS)
 	strip $@
 
-$(EXEC)_g$(BINEXT): $(GAME_OBJS)
-	$(CC) -o $@ $(GAME_OBJS) $(LDFLAGS)
+$(EXEC)_g$(BINEXT): $(GAME_OBJS) $(EXPAT_OBJS)
+	$(CC) -o $@ $(GAME_OBJS) $(EXPAT_OBJS) $(LDFLAGS)
 
 #############################################################################
 # MISC
