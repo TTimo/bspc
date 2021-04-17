@@ -34,6 +34,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define MEQCC
 //#define BSPC
 
+extern int COM_Compress(char *data_p);
+
 #ifdef SCREWUP
 #include <stdio.h>
 #include <stdlib.h>

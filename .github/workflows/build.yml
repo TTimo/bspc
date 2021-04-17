@@ -46,18 +46,18 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         with:
           name: Linux
-          path: bspc
+          path: bspcwop
 
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v2
         if: ${{ runner.os == 'Windows' }}
         with:
           name: Windows
-          path: bspc.exe
+          path: bspcwop.exe
 
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v2
         if: ${{ runner.os == 'macOS' }}
         with:
           name: MacOS
-          path: bspc
+          path: bspcwop

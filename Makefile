@@ -174,21 +174,25 @@ GAME_OBJS = \
 
         #tetrahedron.o
 
-EXEC = bspc
+ifdef MINGW
+  BINEXT=.exe
+endif
+
+EXEC = bspcwop
 
 all: release
 
 debug: CFLAGS += $(DEBUG_CFLAGS)
-debug: $(EXEC)_g
+debug: $(EXEC)_g$(BINEXT)
 
 release: CFLAGS += $(RELEASE_CFLAGS)
-release: $(EXEC)
+release: $(EXEC)$(BINEXT)
 
-$(EXEC): $(GAME_OBJS)
+$(EXEC)$(BINEXT): $(GAME_OBJS)
 	$(CC) -o $@ $(GAME_OBJS) $(LDFLAGS)
 	strip $@
 
-$(EXEC)_g: $(GAME_OBJS)
+$(EXEC)_g$(BINEXT): $(GAME_OBJS)
 	$(CC) -o $@ $(GAME_OBJS) $(LDFLAGS)
 
 #############################################################################
