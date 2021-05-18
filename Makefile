@@ -1,9 +1,55 @@
+#
+# bspc Makefile
+#
+# GNU Make required
+#
+COMPILE_PLATFORM=$(shell uname | sed -e 's/_.*//' | tr '[:upper:]' '[:lower:]' | sed -e 's/\//_/g')
+COMPILE_ARCH=$(shell uname -m | sed -e 's/i.86/x86/' | sed -e 's/^arm.*/arm/')
+
+ifeq ($(COMPILE_PLATFORM),sunos)
+  # Solaris uname and GNU uname differ
+  COMPILE_ARCH=$(shell uname -p | sed -e 's/i.86/x86/')
+endif
+
+#############################################################################
+#
+# If you require a different configuration from the defaults below, create a
+# new file named "Makefile.local" in the same directory as this file and define
+# your parameters there. This allows you to change configuration without
+# causing problems with keeping up to date with the repository.
+#
+#############################################################################
+-include Makefile.local
+
+ifeq ($(COMPILE_PLATFORM),cygwin)
+  PLATFORM=mingw32
+endif
+
+ifndef PLATFORM
+PLATFORM=$(COMPILE_PLATFORM)
+endif
+
+ifeq ($(PLATFORM),mingw32)
+  MINGW=1
+endif
+ifeq ($(PLATFORM),mingw64)
+  MINGW=1
+endif
+
+
 CC=gcc
 CFLAGS=\
 	-Dstricmp=strcasecmp -DCom_Memcpy=memcpy -DCom_Memset=memset \
-	-DMAC_STATIC= -DQDECL= -DLINUX -DBSPC -D_FORTIFY_SOURCE=2 \
+	-DMAC_STATIC= -DQDECL= -DBSPC -D_FORTIFY_SOURCE=2 \
 	-fno-common \
-	-I. -Ideps -Wall
+	-I. -Ideps -Wall $(EXPAT_CFLAGS)
+
+ifneq (,$(findstring "$(PLATFORM)", "linux" "gnu_kfreebsd" "kfreebsd-gnu" "gnu"))
+  CFLAGS += -DHAVE_GETRANDOM -DLINUX
+endif
+ifeq ($(PLATFORM),darwin)
+  CFLAGS += -DHAVE_ARC4RANDOM -DLINUX
+endif
 
 RELEASE_CFLAGS=-O3 -ffast-math
 DEBUG_CFLAGS=-g -O0 -ffast-math
@@ -80,20 +126,24 @@ GAME_OBJS = \
         #tetrahedron.o
 
 EXEC = bspc
+ifdef MINGW
+  BINEXT=.exe
+endif
+
 
 all: release
 
 debug: CFLAGS += $(DEBUG_CFLAGS)
-debug: $(EXEC)_g
+debug: $(EXEC)_g$(BINEXT)
 
 release: CFLAGS += $(RELEASE_CFLAGS)
-release: $(EXEC)
+release: $(EXEC)$(BINEXT)
 
-$(EXEC): $(GAME_OBJS)
+$(EXEC)$(BINEXT): $(GAME_OBJS)
 	$(CC) -o $@ $(GAME_OBJS) $(LDFLAGS)
 	strip $@
 
-$(EXEC)_g: $(GAME_OBJS)
+$(EXEC)_g$(BINEXT): $(GAME_OBJS)
 	$(CC) -o $@ $(GAME_OBJS) $(LDFLAGS)
 
 #############################################################################

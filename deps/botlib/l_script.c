@@ -46,6 +46,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 typedef enum {qfalse, qtrue}	qboolean;
 
 #endif //SCREWUP
+int             COM_Compress( char *data_p );
 
 #ifdef BOTLIB
 //include files for usage in the bot library
