@@ -29,6 +29,14 @@ ifndef PLATFORM
 PLATFORM=$(COMPILE_PLATFORM)
 endif
 
+ifeq ($(PLATFORM),mingw32)
+  MINGW=1
+endif
+ifeq ($(PLATFORM),mingw64)
+  MINGW=1
+endif
+
+
 CC=gcc
 CFLAGS=\
 	-Dstricmp=strcasecmp -DCom_Memcpy=memcpy -DCom_Memset=memset \
